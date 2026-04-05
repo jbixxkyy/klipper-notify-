@@ -1,0 +1,136 @@
+Klipper Discord Notifier Manual Install
+======================================
+
+Files
+-----
+- `discord_notifier.py`
+- `discord.cfg`
+
+What this installs
+------------------
+- A Klipper extra named `discord_notifier`
+- A dedicated config include file for Discord settings and test macro
+- A manual test macro named `DISCORD_TEST`
+
+Where each file goes
+--------------------
+- Put `discord_notifier.py` here:
+  `~/klipper/klippy/extras/discord_notifier.py`
+- Put `discord.cfg` here:
+  `~/printer_data/config/discord.cfg`
+- Add this include to this file:
+  `~/printer_data/config/printer.cfg`
+
+Where the webhook goes
+----------------------
+Put your Discord webhook URL on the `webhook_url:` line inside `discord.cfg`.
+
+Example:
+
+[discord_notifier]
+webhook_url: https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN
+printer_name: Klipper
+
+1. Copy the plugin file
+-----------------------
+Copy `discord_notifier.py` into Klipper's extras directory:
+
+cp discord_notifier.py ~/klipper/klippy/extras/
+
+After copying, the full path should be:
+
+~/klipper/klippy/extras/discord_notifier.py
+
+2. Create the Discord config file
+---------------------------------
+Create this file:
+
+~/printer_data/config/discord.cfg
+
+Put this content in it:
+
+[discord_notifier]
+webhook_url: https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN
+printer_name: Klipper
+enable_print_start: True
+enable_print_complete: True
+enable_print_pause: True
+enable_print_cancel: True
+enable_error: True
+
+[gcode_macro DISCORD_TEST]
+description: Send a test Discord notification
+gcode:
+    {% set message = params.MESSAGE|default("Hello from Klipper!") %}
+    RESPOND MSG="Sending Discord test notification"
+    DISCORD_NOTIFY MESSAGE="{message}"
+
+Important:
+- Replace `YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN` with your real Discord webhook URL.
+- The webhook does not go in `discord_notifier.py`.
+- The webhook goes only in `discord.cfg` on the `webhook_url:` line.
+
+3. Include it from printer.cfg
+------------------------------
+Open this file:
+
+~/printer_data/config/printer.cfg
+
+Add this near your other include lines:
+
+[include discord.cfg]
+
+Example:
+
+[include plr.cfg]
+[include mainsail.cfg]
+[include macros.cfg]
+[include discord.cfg]
+
+4. Restart Klipper
+------------------
+Restart Klipper so it loads the new extra and config:
+
+sudo systemctl restart klipper
+
+If Klipper enters shutdown after a config change, run:
+
+FIRMWARE_RESTART
+
+5. Test the notification
+------------------------
+From the Klipper console, run:
+
+DISCORD_TEST
+
+Or send a custom message:
+
+DISCORD_TEST MESSAGE="Hello from Klipper!"
+
+You can also call the command directly:
+
+DISCORD_NOTIFY MESSAGE="Hello from Klipper!"
+
+What the toggles do
+-------------------
+- enable_print_start: Notify when a print starts
+- enable_print_complete: Notify when a print finishes
+- enable_print_pause: Notify when a print is paused
+- enable_print_cancel: Notify when a print is cancelled
+- enable_error: Notify on print error or shutdown during a print
+
+Troubleshooting
+---------------
+- If `DISCORD_NOTIFY` says malformed command, make sure the message uses double quotes, not single quotes.
+- If nothing is sent, confirm the webhook URL is correct in `discord.cfg`.
+- If Klipper does not load the plugin, confirm `discord_notifier.py` is in `~/klipper/klippy/extras/` and not in the config folder.
+- If Klipper loads but Discord does not receive anything, confirm `discord.cfg` exists in `~/printer_data/config/` and `printer.cfg` includes `[include discord.cfg]`.
+- Check Klipper status in Mainsail or Fluidd after restarting.
+- Check logs:
+  - `~/printer_data/logs/klippy.log`
+  - `~/printer_data/logs/moonraker.log`
+
+Notes
+-----
+- Automatic notifications depend on Klipper's `print_stats` state.
+- This setup works best when prints are started through Klipper's virtual SD workflow, as used by Mainsail and Fluidd.
